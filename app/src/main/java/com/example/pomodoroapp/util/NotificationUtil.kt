@@ -12,6 +12,7 @@ import android.media.RingtoneManager
 import android.net.Uri
 import android.os.Build
 import androidx.core.app.NotificationCompat
+import androidx.core.app.NotificationCompat.PRIORITY_MAX
 import com.example.pomodoroapp.AppConstants
 import com.example.pomodoroapp.MainActivity
 import com.example.pomodoroapp.R
@@ -35,12 +36,14 @@ class NotificationUtil {
             nBuilder.setContentTitle("Timer Expired!")
                 .setContentText("Start again?")
                 .setContentIntent(getPendingIntentWithStack(context, MainActivity::class.java))
-                .addAction(R.drawable.ic_play, "Start", startPendingIntent)
+                .addAction(R.drawable.ic_play, "Start", startPendingIntent).priority =
+                PRIORITY_MAX
 
             val nManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
             nManager.createNotificationChannel(CHANNEL_ID_TIMER, CHANNEL_NAME_TIMER, true)
 
             nManager.notify(TIMER_ID, nBuilder.build())
+
         }
 
         fun showTimerRunning(context: Context, wakeUpTime: Long){
@@ -121,7 +124,7 @@ class NotificationUtil {
                                                                   channelName: String,
                                                                   playSound: Boolean){
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O){
-                val channelImportance = if (playSound) NotificationManager.IMPORTANCE_DEFAULT
+                val channelImportance = if (playSound) NotificationManager.IMPORTANCE_HIGH
                 else NotificationManager.IMPORTANCE_LOW
                 val nChannel = NotificationChannel(channelID, channelName, channelImportance)
                 nChannel.enableLights(true)

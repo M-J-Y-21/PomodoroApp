@@ -1,15 +1,17 @@
 package com.example.pomodoroapp
 
 import android.app.AlarmManager
+import android.app.AlertDialog
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
-import android.os.Bundle
-import android.os.CountDownTimer
+import android.os.*
 import android.view.Menu
 import android.view.MenuItem
+import android.widget.ProgressBar
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.ContextCompat.getSystemService
 import androidx.navigation.findNavController
 import androidx.navigation.ui.AppBarConfiguration
 import androidx.navigation.ui.navigateUp
@@ -20,12 +22,14 @@ import com.example.pomodoroapp.util.PrefUtil
 import me.zhanghai.android.materialprogressbar.MaterialProgressBar
 import java.util.*
 
-class MainActivity : AppCompatActivity() {
+open class MainActivity : AppCompatActivity() {
 
     private lateinit var appBarConfiguration: AppBarConfiguration
     private lateinit var binding: ActivityMainBinding
 
+
     companion object {
+
         fun setAlarm(context: Context, nowSeconds: Long, secondsRemaining: Long): Long {
             val wakeUpTime = (nowSeconds + secondsRemaining) * 1000
             val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
@@ -34,6 +38,7 @@ class MainActivity : AppCompatActivity() {
             alarmManager.setExact(AlarmManager.RTC_WAKEUP, wakeUpTime, pendingIntent)
             PrefUtil.setAlarmSetTime(nowSeconds, context)
             return wakeUpTime
+            //showDefaultDialog(context)
         }
 
         fun removeAlarm(context: Context) {
@@ -46,7 +51,21 @@ class MainActivity : AppCompatActivity() {
 
         val nowSeconds: Long
             get() = Calendar.getInstance().timeInMillis / 1000
+
+        fun vibratePhone(context: Context) {
+            val vibrator = context?.getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
+            if (Build.VERSION.SDK_INT >= 26) {
+                vibrator.vibrate(VibrationEffect.createOneShot(200, VibrationEffect.DEFAULT_AMPLITUDE))
+            } else {
+                vibrator.vibrate(200)
+            }
+        }
+
+
+
     }
+
+
 
     enum class TimerState {
         Stopped, Paused, Running
@@ -89,6 +108,8 @@ class MainActivity : AppCompatActivity() {
             timer.cancel()
             onTimerFinished()
         }
+
+
 
     }
 
@@ -148,21 +169,6 @@ class MainActivity : AppCompatActivity() {
         updateCountdownUI()
     }
 
-    private fun onTimerFinished() {
-        timerState = TimerState.Stopped
-
-        setNewTimerLength()
-
-        val progressCountdown = findViewById<MaterialProgressBar>(R.id.progress_countdown)
-        progressCountdown.progress = 0
-
-        PrefUtil.setSecondsRemaining(timerLengthSeconds, this)
-        secondsRemaining = timerLengthSeconds
-
-        updateButtons()
-        updateCountdownUI()
-    }
-
     private fun startTimer() {
         timerState = TimerState.Running
 
@@ -177,19 +183,6 @@ class MainActivity : AppCompatActivity() {
         }.start()
     }
 
-    private fun setNewTimerLength() {
-        val lengthInMinutes = PrefUtil.getTimerLength(this)
-        timerLengthSeconds = (lengthInMinutes * 60L)
-        val progressCountdown = findViewById<MaterialProgressBar>(R.id.progress_countdown)
-        progressCountdown.max = timerLengthSeconds.toInt()
-    }
-
-    private fun setPreviousTimerLength() {
-        timerLengthSeconds = PrefUtil.getPreviousTimerLengthSeconds(this)
-        val progressCountdown = findViewById<MaterialProgressBar>(R.id.progress_countdown)
-        progressCountdown.max = timerLengthSeconds.toInt()
-    }
-
     private fun updateCountdownUI() {
         val minutesUntilFinished = secondsRemaining / 60
         val secondsInMinuteUntilFinished = secondsRemaining - minutesUntilFinished * 60
@@ -198,8 +191,31 @@ class MainActivity : AppCompatActivity() {
         val textviewCountdown = findViewById<TextView>(R.id.textview_countdown)
         textviewCountdown.text = "$minutesUntilFinished:${
             if (secondsStr.length == 2 ) secondsStr
-        else "0" + secondsStr}"
+            else "0" + secondsStr}"
         progressCountdown.progress = (timerLengthSeconds - secondsRemaining).toInt()
+    }
+
+    private fun onTimerFinished() {
+        timerState = TimerState.Stopped
+
+        setNewTimerLength()
+
+        val progressCountdown = findViewById<MaterialProgressBar>(R.id.progress_countdown)
+        progressCountdown.progress = 0
+
+        PrefUtil.setSecondsRemaining(timerLengthSeconds, this)
+        secondsRemaining = timerLengthSeconds
+
+        updateButtons()
+        updateCountdownUI()
+        //showDefaultDialog(this)
+    }
+
+    private fun setNewTimerLength() {
+        val lengthInMinutes = PrefUtil.getTimerLength(this)
+        timerLengthSeconds = (lengthInMinutes * 60L)
+        val progressCountdown = findViewById<MaterialProgressBar>(R.id.progress_countdown)
+        progressCountdown.max = timerLengthSeconds.toInt()
     }
 
     private fun updateButtons() {
@@ -221,6 +237,20 @@ class MainActivity : AppCompatActivity() {
             }
         }
     }
+
+
+
+
+
+    private fun setPreviousTimerLength() {
+        timerLengthSeconds = PrefUtil.getPreviousTimerLengthSeconds(this)
+        val progressCountdown = findViewById<MaterialProgressBar>(R.id.progress_countdown)
+        progressCountdown.max = timerLengthSeconds.toInt()
+    }
+
+
+
+
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
         // Inflate the menu; this adds items to the action bar if it is present.
@@ -247,4 +277,6 @@ class MainActivity : AppCompatActivity() {
         return navController.navigateUp(appBarConfiguration)
                 || super.onSupportNavigateUp()
     }
+
+
 }
