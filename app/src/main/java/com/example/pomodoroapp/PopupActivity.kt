@@ -47,6 +47,8 @@ class PopupActivity : Activity() {
                 this, "I see you don't want to start your break now",
                 Toast.LENGTH_LONG
             ).show()
+            val intent = Intent(this, MainActivity::class.java)
+            startActivity(intent)
         }
     }
 

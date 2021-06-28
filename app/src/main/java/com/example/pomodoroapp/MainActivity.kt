@@ -5,9 +5,12 @@ import android.app.AlertDialog
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
+import android.media.MediaPlayer
 import android.os.*
+import android.util.Log
 import android.view.Menu
 import android.view.MenuItem
+import android.widget.ArrayAdapter
 import android.widget.ProgressBar
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
@@ -26,6 +29,9 @@ open class MainActivity : AppCompatActivity() {
 
     private lateinit var appBarConfiguration: AppBarConfiguration
     private lateinit var binding: ActivityMainBinding
+    private lateinit var waves: MediaPlayer
+    private lateinit var forrest: MediaPlayer
+    private lateinit var rain: MediaPlayer
 
 
     companion object {
@@ -66,7 +72,6 @@ open class MainActivity : AppCompatActivity() {
     }
 
 
-
     enum class TimerState {
         Stopped, Paused, Running
     }
@@ -92,6 +97,7 @@ open class MainActivity : AppCompatActivity() {
         supportActionBar?.setIcon(R.drawable.ic_timer)
         supportActionBar?.title = "         Timer"
 
+
         binding.fabStart.setOnClickListener { v ->
             startTimer()
             timerState = TimerState.Running
@@ -110,6 +116,15 @@ open class MainActivity : AppCompatActivity() {
         }
 
 
+        waves = MediaPlayer.create(this, R.raw.thai_wave)
+        forrest = MediaPlayer.create(this, R.raw.forest_sound)
+        rain = MediaPlayer.create(this, R.raw.rain_sound)
+        val noiseDialog = WhiteNoiseDialogFragment(waves, forrest, rain)
+        binding.fabNoise.setOnClickListener {
+            noiseDialog.show(supportFragmentManager, "test dialog")
+        }
+
+        Log.d("onCreate", "onCreate is called")
 
     }
 
@@ -270,6 +285,11 @@ open class MainActivity : AppCompatActivity() {
             }
             else -> super.onOptionsItemSelected(item)
         }
+    }
+
+    override fun onDestroy() {
+        Log.d("onDestroy", "This is when activity is destroyed")
+        super.onDestroy()
     }
 
     override fun onSupportNavigateUp(): Boolean {
