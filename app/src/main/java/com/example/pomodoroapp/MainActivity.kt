@@ -1,25 +1,25 @@
 package com.example.pomodoroapp
 
 import android.app.AlarmManager
-import android.app.AlertDialog
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
+import android.content.SharedPreferences
 import android.media.MediaPlayer
 import android.os.*
 import android.util.Log
 import android.view.Menu
 import android.view.MenuItem
-import android.widget.ArrayAdapter
-import android.widget.ProgressBar
+import android.view.WindowManager
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.content.ContextCompat.getSystemService
+import androidx.appcompat.app.AppCompatDelegate
 import androidx.navigation.findNavController
 import androidx.navigation.ui.AppBarConfiguration
 import androidx.navigation.ui.navigateUp
 import androidx.navigation.ui.setupActionBarWithNavController
 import com.example.pomodoroapp.databinding.ActivityMainBinding
+import com.example.pomodoroapp.dialog.WhiteNoiseDialogFragment
 import com.example.pomodoroapp.util.NotificationUtil
 import com.example.pomodoroapp.util.PrefUtil
 import me.zhanghai.android.materialprogressbar.MaterialProgressBar
@@ -35,6 +35,7 @@ open class MainActivity : AppCompatActivity() {
 
 
     companion object {
+
 
         fun setAlarm(context: Context, nowSeconds: Long, secondsRemaining: Long): Long {
             val wakeUpTime = (nowSeconds + secondsRemaining) * 1000
@@ -61,12 +62,18 @@ open class MainActivity : AppCompatActivity() {
         fun vibratePhone(context: Context) {
             val vibrator = context?.getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
             if (Build.VERSION.SDK_INT >= 26) {
-                vibrator.vibrate(VibrationEffect.createOneShot(200, VibrationEffect.DEFAULT_AMPLITUDE))
+                vibrator.vibrate(
+                    VibrationEffect.createOneShot(
+                        200,
+                        VibrationEffect.DEFAULT_AMPLITUDE
+                    )
+                )
             } else {
                 vibrator.vibrate(200)
             }
         }
-
+        // to set status bar for settings
+        var darkMode: Boolean = false
 
 
     }
@@ -126,6 +133,46 @@ open class MainActivity : AppCompatActivity() {
 
         Log.d("onCreate", "onCreate is called")
 
+        val appSettingPrefs: SharedPreferences = getSharedPreferences("AppSettingPrefs", 0)
+        val sharedPrefsEdit: SharedPreferences.Editor = appSettingPrefs.edit()
+        val isNightModeOn: Boolean = appSettingPrefs.getBoolean("NightMode", false)
+
+        if (Build.VERSION.SDK_INT >= 21) {
+            val window = this.window
+            window.addFlags(WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS)
+            window.clearFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS)
+            window.statusBarColor = this.resources.getColor(R.color.purple_500)
+        }
+
+        if (isNightModeOn) {
+            AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES)
+            window.statusBarColor = this.resources.getColor(R.color.grey)
+            binding.btnChangeBg.text = "Disable Dark Mode"
+            darkMode = true
+        } else {
+            AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO)
+            window.statusBarColor = this.resources.getColor(R.color.purple_500)
+            binding.btnChangeBg.text = "Enable Dark Mode"
+            darkMode = false
+        }
+        //theme.applyStyle(R.style.Theme_PomodoroAppDark, true)
+        binding.btnChangeBg.setOnClickListener {
+            if (isNightModeOn) {
+                AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO)
+                sharedPrefsEdit.putBoolean("NightMode", false)
+                sharedPrefsEdit.apply()
+
+                binding.btnChangeBg.text = "Enable Dark Mode"
+            } else {
+                AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES)
+                sharedPrefsEdit.putBoolean("NightMode", true)
+                sharedPrefsEdit.apply()
+
+                binding.btnChangeBg.text = "Disable Dark Mode"
+            }
+        }
+
+
     }
 
     // called every single time activity comes up on the screen
@@ -146,8 +193,7 @@ open class MainActivity : AppCompatActivity() {
             timer.cancel()
             val wakeUpTime = setAlarm(this, nowSeconds, secondsRemaining)
             NotificationUtil.showTimerRunning(this, wakeUpTime)
-        }
-        else if (timerState == TimerState.Paused) {
+        } else if (timerState == TimerState.Paused) {
             NotificationUtil.showTimerPaused(this)
         }
 
@@ -205,8 +251,9 @@ open class MainActivity : AppCompatActivity() {
         val progressCountdown = findViewById<MaterialProgressBar>(R.id.progress_countdown)
         val textviewCountdown = findViewById<TextView>(R.id.textview_countdown)
         textviewCountdown.text = "$minutesUntilFinished:${
-            if (secondsStr.length == 2 ) secondsStr
-            else "0" + secondsStr}"
+            if (secondsStr.length == 2) secondsStr
+            else "0" + secondsStr
+        }"
         progressCountdown.progress = (timerLengthSeconds - secondsRemaining).toInt()
     }
 
@@ -254,17 +301,11 @@ open class MainActivity : AppCompatActivity() {
     }
 
 
-
-
-
     private fun setPreviousTimerLength() {
         timerLengthSeconds = PrefUtil.getPreviousTimerLengthSeconds(this)
         val progressCountdown = findViewById<MaterialProgressBar>(R.id.progress_countdown)
         progressCountdown.max = timerLengthSeconds.toInt()
     }
-
-
-
 
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {

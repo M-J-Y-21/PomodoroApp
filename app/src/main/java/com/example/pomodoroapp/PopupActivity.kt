@@ -39,6 +39,7 @@ class PopupActivity : Activity() {
         binding.btnBreakY.setOnClickListener {
             Toast.makeText(this, "You can start your break", Toast.LENGTH_LONG).show()
             val intent = Intent(this, MainActivity::class.java)
+           // intent.putExtra("Start Break", true)
             startActivity(intent)
         }
 

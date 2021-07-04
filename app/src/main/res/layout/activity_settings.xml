@@ -4,6 +4,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:theme="@style/Theme.PomodoroApp"
     tools:context="com.example.pomodoroapp.SettingsActivity">
 
     <com.google.android.material.appbar.AppBarLayout
@@ -24,7 +25,8 @@
         android:id="@+id/fragment"
         android:name="com.example.pomodoroapp.SettingsActivityFragment"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"/>
+        android:layout_height="match_parent"
+        app:layout_behavior="@string/appbar_scrolling_view_behavior"/>
 
 
 
