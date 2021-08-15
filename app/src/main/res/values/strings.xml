@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">PomodoroApp</string>
+    <string name="app_name">Focus Time</string>
     <string name="action_settings">Settings</string>
     <!-- Strings used for fragments for navigation -->
     <string name="first_fragment_label">First Fragment</string>
@@ -10,13 +10,13 @@
     <string name="hello_first_fragment">Hello first fragment</string>
     <string name="hello_second_fragment">Hello second fragment. Arg: %1$s</string>
     <string name="pop_up_dialog">This is a pop up dialog</string>
-    <string-array name="noise_array">
-        <item>Ocean</item>
-        <item>Forrest</item>
-        <item>Rain</item>
-    </string-array>
     <string name="noise_dialog">White Noise</string>
     <string name="set_sound">Set Sound</string>
     <string name="cancel">Cancel</string>
     <string name="action_tag">Tags</string>
+    <string name="select_work_tag">Select Work Tag</string>
+    <string name="delete_tag">Delete Tag</string>
+    <string name="add_tag">Add Tag</string>
+    <string name="tag_dialog">Work Tag</string>
+    <string name="set_work_tag">Set Work Tag</string>
 </resources>

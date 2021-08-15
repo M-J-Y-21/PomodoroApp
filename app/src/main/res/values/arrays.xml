@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string-array name="work_tag_array">
+        <item>Study</item>
+        <item>Exercise</item>
+        <item>Work</item>
+        <item>Eat</item>
+    </string-array>
+    <string-array name="noise_array">
+        <item>Ocean</item>
+        <item>Forrest</item>
+        <item>Rain</item>
+    </string-array>
+</resources>

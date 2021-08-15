@@ -1,34 +1,43 @@
 package com.example.pomodoroapp
 
 import android.app.AlarmManager
+import android.app.ListActivity
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
 import android.media.MediaPlayer
+import android.nfc.Tag
 import android.os.*
 import android.util.Log
-import android.view.Menu
-import android.view.MenuItem
-import android.view.WindowManager
-import android.widget.TextView
+import android.view.*
+import android.widget.*
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.app.AppCompatDelegate
+import androidx.lifecycle.Observer
+import androidx.lifecycle.ViewModelProvider
 import androidx.navigation.findNavController
 import androidx.navigation.ui.AppBarConfiguration
 import androidx.navigation.ui.navigateUp
 import androidx.navigation.ui.setupActionBarWithNavController
 import com.example.pomodoroapp.databinding.ActivityMainBinding
 import com.example.pomodoroapp.dialog.WhiteNoiseDialogFragment
+import com.example.pomodoroapp.dialog.WorkTagDialogFragment
 import com.example.pomodoroapp.util.NotificationUtil
 import com.example.pomodoroapp.util.PrefUtil
 import me.zhanghai.android.materialprogressbar.MaterialProgressBar
 import java.util.*
+import java.util.EnumSet.of
+import java.util.List.of
 
 open class MainActivity : AppCompatActivity() {
 
     private lateinit var appBarConfiguration: AppBarConfiguration
+
     private lateinit var binding: ActivityMainBinding
+
+    lateinit var viewModel: SharedViewModel
+
     private lateinit var waves: MediaPlayer
     private lateinit var forrest: MediaPlayer
     private lateinit var rain: MediaPlayer
@@ -72,6 +81,7 @@ open class MainActivity : AppCompatActivity() {
                 vibrator.vibrate(200)
             }
         }
+
         // to set status bar for settings
         var darkMode: Boolean = false
 
@@ -87,7 +97,10 @@ open class MainActivity : AppCompatActivity() {
     private var timerLengthSeconds = 0L
     private var timerState = TimerState.Stopped
 
+    private var firstBackgroundChange = true
+
     private var secondsRemaining = 0L
+
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -123,13 +136,33 @@ open class MainActivity : AppCompatActivity() {
         }
 
 
+
         waves = MediaPlayer.create(this, R.raw.thai_wave)
         forrest = MediaPlayer.create(this, R.raw.forest_sound)
         rain = MediaPlayer.create(this, R.raw.rain_sound)
         val noiseDialog = WhiteNoiseDialogFragment(waves, forrest, rain)
         binding.fabNoise.setOnClickListener {
-            noiseDialog.show(supportFragmentManager, "test dialog")
+            noiseDialog.show(supportFragmentManager, "white noise dialog")
         }
+
+        viewModel = ViewModelProvider(this).get(SharedViewModel::class.java)
+        viewModel.tag.observe(this, Observer { newTag ->
+            if (viewModel.tag.value != null) {
+                if (viewModel.tag.value != "") {
+                    binding.workTagTxt.text = viewModel.tag.value
+
+                    if(firstBackgroundChange)
+                        binding.workTagTxt.background = getDrawable(R.drawable.text_bg)
+                }
+
+                else {
+                    binding.workTagTxt.text = viewModel.tag.value
+                    binding.workTagTxt.background = null
+                }
+            }
+
+
+        })
 
         Log.d("onCreate", "onCreate is called")
 
@@ -149,34 +182,69 @@ open class MainActivity : AppCompatActivity() {
             window.statusBarColor = this.resources.getColor(R.color.grey)
             binding.btnChangeBg.text = "Disable Dark Mode"
             darkMode = true
+            Log.d("MainActivity", "Tag value is '${viewModel.tag.value}' when night mode is on")
+            firstBackgroundChange = false
+            if (viewModel.tag.value.toString() != "") {
+                binding.workTagTxt.text = viewModel.tag.value
+                binding.workTagTxt.background = getDrawable(R.drawable.text_bg_dark)
+                Log.d("MainActivity", "tag if conditional goes through for night mode on")
+            }
         } else {
             AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO)
             window.statusBarColor = this.resources.getColor(R.color.purple_500)
             binding.btnChangeBg.text = "Enable Dark Mode"
             darkMode = false
+            Log.d("MainActivity", "Tag value is '${viewModel.tag.value}' when night mode is off")
+            if (viewModel.tag.value.toString() != "") {
+                firstBackgroundChange = false
+                binding.workTagTxt.text = viewModel.tag.value
+                binding.workTagTxt.background = getDrawable(R.drawable.text_bg)
+                Log.d("MainActivity", "tag if conditional goes through for night mode off")
+            }
+
         }
-        //theme.applyStyle(R.style.Theme_PomodoroAppDark, true)
         binding.btnChangeBg.setOnClickListener {
+            firstBackgroundChange = false
             if (isNightModeOn) {
                 AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO)
                 sharedPrefsEdit.putBoolean("NightMode", false)
                 sharedPrefsEdit.apply()
 
                 binding.btnChangeBg.text = "Enable Dark Mode"
+                if (viewModel.tag.value != "") {
+                    binding.workTagTxt.text = viewModel.tag.value
+                    binding.workTagTxt.background = getDrawable(R.drawable.text_bg)
+                }
             } else {
                 AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES)
                 sharedPrefsEdit.putBoolean("NightMode", true)
                 sharedPrefsEdit.apply()
 
                 binding.btnChangeBg.text = "Disable Dark Mode"
+                if (viewModel.tag.value != "") {
+                    binding.workTagTxt.text = viewModel.tag.value
+                    binding.workTagTxt.background = getDrawable(R.drawable.text_bg_dark)
+                }
             }
         }
 
 
+
+    }
+
+    override fun onStop() {
+        super.onStop()
+        Log.d("MainActivity", "On start is called")
+    }
+
+    override fun onStart() {
+        super.onStart()
+        Log.d("MainActivity", "On start is called")
     }
 
     // called every single time activity comes up on the screen
     override fun onResume() {
+        Log.d("MainActivity", "onResume Called")
         super.onResume()
 
         initTimer()
@@ -184,16 +252,18 @@ open class MainActivity : AppCompatActivity() {
         removeAlarm(this)
 
         NotificationUtil.hideTimerNotification(this)
+
+
     }
 
     override fun onPause() {
         super.onPause()
 
-        if (timerState == TimerState.Running) {
+        if (timerState == MainActivity.TimerState.Running) {
             timer.cancel()
             val wakeUpTime = setAlarm(this, nowSeconds, secondsRemaining)
             NotificationUtil.showTimerRunning(this, wakeUpTime)
-        } else if (timerState == TimerState.Paused) {
+        } else if (timerState == MainActivity.TimerState.Paused) {
             NotificationUtil.showTimerPaused(this)
         }
 
@@ -201,6 +271,14 @@ open class MainActivity : AppCompatActivity() {
         PrefUtil.setSecondsRemaining(secondsRemaining, this)
         PrefUtil.setTimerState(timerState, this)
 
+//        if (viewModel.tag.value != null) {
+//            binding.workTagTxt.text = viewModel.tag.value
+//            binding.workTagTxt.background = getDrawable(R.drawable.text_bg)
+//        }
+
+        // Check Lifecycle method or alt that will be able to called everytime dialogfrag is dismissed
+
+        Log.d("MainActivity", "onPause Called")
 
     }
 
@@ -324,6 +402,11 @@ open class MainActivity : AppCompatActivity() {
                 startActivity(intent)
                 true
             }
+            R.id.action_tags -> {
+                val workTagDialog = WorkTagDialogFragment()
+                workTagDialog.show(supportFragmentManager, "workTagDialog")
+                true
+            }
             else -> super.onOptionsItemSelected(item)
         }
     }
@@ -341,3 +424,4 @@ open class MainActivity : AppCompatActivity() {
 
 
 }
+
